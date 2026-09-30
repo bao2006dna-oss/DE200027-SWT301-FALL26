@@ -1,6 +1,5 @@
-package lab2.account;
+package fu.de200027;
 
-import fu.de200027.AccountService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -35,7 +34,7 @@ class AccountServiceTest {
         private static final String VALID_PHONE = "0987654321";
 
         @Test
-        @DisplayName("Đăng ký thành công -> SUCCESS")
+        @DisplayName("1. Đăng ký thành công -> SUCCESS")
         void register_Success() {
             ResultCode result = service.register(VALID_USER, VALID_EMAIL, VALID_PASS, VALID_PASS, VALID_DOB, VALID_PHONE);
             assertEquals(ResultCode.SUCCESS, result);
@@ -43,23 +42,79 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("Kiểm tra thứ tự ưu tiên lỗi: INVALID_INPUT (bỏ trống param) được trả về trước")
-        void register_PriorityOrder_InvalidInput() {
-            ResultCode result = service.register(null, VALID_EMAIL, VALID_PASS, VALID_PASS, VALID_DOB, VALID_PHONE);
-            assertEquals(ResultCode.INVALID_INPUT, result);
+        @DisplayName("2. REG-01: Tham số rỗng/null hoặc DOB ở tương lai -> INVALID_INPUT")
+        void register_REG01_InvalidInput() {
+            // Null parameters
+            assertEquals(ResultCode.INVALID_INPUT, service.register(null, VALID_EMAIL, VALID_PASS, VALID_PASS, VALID_DOB, VALID_PHONE));
+            assertEquals(ResultCode.INVALID_INPUT, service.register(VALID_USER, null, VALID_PASS, VALID_PASS, VALID_DOB, VALID_PHONE));
+            assertEquals(ResultCode.INVALID_INPUT, service.register(VALID_USER, VALID_EMAIL, null, VALID_PASS, VALID_DOB, VALID_PHONE));
+            assertEquals(ResultCode.INVALID_INPUT, service.register(VALID_USER, VALID_EMAIL, VALID_PASS, null, VALID_DOB, VALID_PHONE));
+            assertEquals(ResultCode.INVALID_INPUT, service.register(VALID_USER, VALID_EMAIL, VALID_PASS, VALID_PASS, null, VALID_PHONE));
+
+            // Date of birth ở tương lai
+            assertEquals(ResultCode.INVALID_INPUT, service.register(VALID_USER, VALID_EMAIL, VALID_PASS, VALID_PASS, LocalDate.now().plusDays(1), VALID_PHONE));
         }
 
         @Test
-        @DisplayName("Trùng Username (không phân biệt hoa/thường) -> DUPLICATE_USERNAME")
-        void register_DuplicateUsername() {
+        @DisplayName("3. REG-02: Username không hợp lệ -> INVALID_USERNAME")
+        void register_REG02_InvalidUsername() {
+            ResultCode result = service.register("123user", VALID_EMAIL, VALID_PASS, VALID_PASS, VALID_DOB, VALID_PHONE);
+            assertEquals(ResultCode.INVALID_USERNAME, result);
+        }
+
+        @Test
+        @DisplayName("4. REG-04: Email không hợp lệ -> INVALID_EMAIL")
+        void register_REG04_InvalidEmail() {
+            ResultCode result = service.register(VALID_USER, "invalid-email", VALID_PASS, VALID_PASS, VALID_DOB, VALID_PHONE);
+            assertEquals(ResultCode.INVALID_EMAIL, result);
+        }
+
+        @Test
+        @DisplayName("5. REG-06: Mật khẩu yếu -> WEAK_PASSWORD")
+        void register_REG06_WeakPassword() {
+            ResultCode result = service.register(VALID_USER, VALID_EMAIL, "12345", "12345", VALID_DOB, VALID_PHONE);
+            assertEquals(ResultCode.WEAK_PASSWORD, result);
+        }
+
+        @Test
+        @DisplayName("6. REG-07: Xác nhận mật khẩu không khớp -> PASSWORD_MISMATCH")
+        void register_REG07_PasswordMismatch() {
+            ResultCode result = service.register(VALID_USER, VALID_EMAIL, VALID_PASS, "WrongConfirm@123", VALID_DOB, VALID_PHONE);
+            assertEquals(ResultCode.PASSWORD_MISMATCH, result);
+        }
+
+        @Test
+        @DisplayName("7. REG-08: Chưa đủ 18 tuổi -> UNDERAGE")
+        void register_REG08_Underage() {
+            ResultCode result = service.register(VALID_USER, VALID_EMAIL, VALID_PASS, VALID_PASS, LocalDate.now().minusYears(17), VALID_PHONE);
+            assertEquals(ResultCode.UNDERAGE, result);
+        }
+
+        @Test
+        @DisplayName("8. REG-09: Phone không hợp lệ -> INVALID_PHONE")
+        void register_REG09_InvalidPhone() {
+            ResultCode result = service.register(VALID_USER, VALID_EMAIL, VALID_PASS, VALID_PASS, VALID_DOB, "012345");
+            assertEquals(ResultCode.INVALID_PHONE, result);
+        }
+
+        @Test
+        @DisplayName("9. REG-09: Phone null hoặc rỗng -> Vẫn chấp nhận SUCCESS")
+        void register_REG09_NullOrEmptyPhone_Success() {
+            assertEquals(ResultCode.SUCCESS, service.register("user_p1", "p1@example.com", VALID_PASS, VALID_PASS, VALID_DOB, null));
+            assertEquals(ResultCode.SUCCESS, service.register("user_p2", "p2@example.com", VALID_PASS, VALID_PASS, VALID_DOB, ""));
+        }
+
+        @Test
+        @DisplayName("10. REG-03: Trùng Username (không phân biệt hoa/thường) -> DUPLICATE_USERNAME")
+        void register_REG03_DuplicateUsername() {
             service.register(VALID_USER, VALID_EMAIL, VALID_PASS, VALID_PASS, VALID_DOB, VALID_PHONE);
             ResultCode result = service.register("ALICE_01", "other@example.com", VALID_PASS, VALID_PASS, VALID_DOB, VALID_PHONE);
             assertEquals(ResultCode.DUPLICATE_USERNAME, result);
         }
 
         @Test
-        @DisplayName("Trùng Email (không phân biệt hoa/thường) -> DUPLICATE_EMAIL")
-        void register_DuplicateEmail() {
+        @DisplayName("11. REG-05: Trùng Email (không phân biệt hoa/thường) -> DUPLICATE_EMAIL")
+        void register_REG05_DuplicateEmail() {
             service.register(VALID_USER, VALID_EMAIL, VALID_PASS, VALID_PASS, VALID_DOB, VALID_PHONE);
             ResultCode result = service.register("bob_01", "ALICE@EXAMPLE.COM", VALID_PASS, VALID_PASS, VALID_DOB, VALID_PHONE);
             assertEquals(ResultCode.DUPLICATE_EMAIL, result);
@@ -67,7 +122,7 @@ class AccountServiceTest {
     }
 
     @Nested
-    @DisplayName("Kiểm thử chức năng Login (BR-LOG)")
+    @DisplayName("Kiểm thử chức năng Login (BR-LOG) & Admin Management")
     class Login {
 
         private static final String USER = "alice_01";
@@ -211,6 +266,34 @@ class AccountServiceTest {
         @DisplayName("Kiểm tra password null hoặc blank")
         void login_InvalidPasswordInput(String inputPassword) {
             assertEquals(ResultCode.INVALID_INPUT, service.login(USER, inputPassword));
+        }
+
+        // Phủ các nhánh Admin (disableAccount, unlockAccount) với username không hợp lệ
+        @Test
+        @DisplayName("disableAccount và unlockAccount với username null/blank/không tồn tại -> USER_NOT_FOUND")
+        void admin_InvalidUsernameBranches() {
+            assertEquals(ResultCode.USER_NOT_FOUND, service.disableAccount(null));
+            assertEquals(ResultCode.USER_NOT_FOUND, service.disableAccount(""));
+            assertEquals(ResultCode.USER_NOT_FOUND, service.disableAccount("   "));
+            assertEquals(ResultCode.USER_NOT_FOUND, service.disableAccount("not_exist"));
+
+            assertEquals(ResultCode.USER_NOT_FOUND, service.unlockAccount(null));
+            assertEquals(ResultCode.USER_NOT_FOUND, service.unlockAccount(""));
+            assertEquals(ResultCode.USER_NOT_FOUND, service.unlockAccount("   "));
+            assertEquals(ResultCode.USER_NOT_FOUND, service.unlockAccount("not_exist"));
+        }
+
+        // Phủ các nhánh helper (findByUsername, isLocked) với username null/blank
+        @Test
+        @DisplayName("findByUsername và isLocked với username null hoặc blank")
+        void helper_NullOrBlankUsername() {
+            assertTrue(service.findByUsername(null).isEmpty());
+            assertTrue(service.findByUsername("").isEmpty());
+            assertTrue(service.findByUsername("   ").isEmpty());
+
+            assertFalse(service.isLocked(null));
+            assertFalse(service.isLocked(""));
+            assertFalse(service.isLocked("   "));
         }
     }
 }

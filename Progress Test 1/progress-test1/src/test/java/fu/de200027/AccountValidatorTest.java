@@ -1,4 +1,4 @@
-package lab2.account;
+package fu.de200027;
 
 
 import fu.de200027.AccountValidator;
