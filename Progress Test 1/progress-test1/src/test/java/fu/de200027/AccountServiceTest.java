@@ -1,5 +1,6 @@
-package fu.de200027;
+package lab2.account;
 
+import fu.de200027.AccountService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
