@@ -83,15 +83,65 @@ public class AccountService {
     }
 
     public ResultCode login(String username, String password) {
-        throw new UnsupportedOperationException("TODO");
+        // 1. LOG-01: Parameter null hoặc blank
+        if (isBlank(username) || isBlank(password)) {
+            return ResultCode.INVALID_INPUT;
+        }
+
+        // 2. Tra cứu user
+        Account acc = accounts.get(key(username));
+        if (acc == null) {
+            return ResultCode.INVALID_CREDENTIALS;
+        }
+
+        // 3. Kiểm tra DISABLED
+        if (acc.getStatus() == AccountStatus.DISABLED) {
+            return ResultCode.ACCOUNT_DISABLED;
+        }
+
+        // 4. Kiểm tra Đang bị khóa -> không tăng bộ đếm
+        if (acc.isLocked()) {
+            return ResultCode.ACCOUNT_LOCKED;
+        }
+
+        // 5. Kiểm tra mật khẩu
+        boolean matches = PasswordHasher.matches(acc.getSalt(), password, acc.getCurrentPasswordHash());
+        if (!matches) {
+            acc.incrementFailedAttempts();
+            if (acc.getFailedAttempts() >= MAX_FAILED_ATTEMPTS) {
+                acc.lock();
+                return ResultCode.ACCOUNT_LOCKED;
+            }
+            return ResultCode.INVALID_CREDENTIALS;
+        }
+
+        // 6. Thành công -> reset bộ đếm về 0
+        acc.resetFailedAttempts();
+        return ResultCode.SUCCESS;
     }
 
     public ResultCode disableAccount(String username) {
-        throw new UnsupportedOperationException("TODO");
+        if (isBlank(username)) {
+            return ResultCode.USER_NOT_FOUND;
+        }
+        Optional<Account> accOpt = findByUsername(username);
+        if (accOpt.isEmpty()) {
+            return ResultCode.USER_NOT_FOUND;
+        }
+        accOpt.get().setStatus(AccountStatus.DISABLED);
+        return ResultCode.SUCCESS;
     }
 
     public ResultCode unlockAccount(String username) {
-        throw new UnsupportedOperationException("TODO");
+        if (isBlank(username)) {
+            return ResultCode.USER_NOT_FOUND;
+        }
+        Optional<Account> accOpt = findByUsername(username);
+        if (accOpt.isEmpty()) {
+            return ResultCode.USER_NOT_FOUND;
+        }
+        accOpt.get().unlock(); // Đặt locked = false và failedAttempts = 0
+        return ResultCode.SUCCESS;
     }
 
     public Optional<Account> findByUsername(String username) {
@@ -100,7 +150,9 @@ public class AccountService {
     }
 
     public boolean isLocked(String username) {
-        throw new UnsupportedOperationException("TODO");
+        return findByUsername(username)
+                .map(Account::isLocked)
+                .orElse(false);
     }
 
     public ResultCode changePassword(String username, String oldPassword, String newPassword) {
@@ -120,6 +172,6 @@ public class AccountService {
     }
 
     private static String key(String s) {
-        return s.toLowerCase(Locale.ROOT);
+        return s == null ? "" : s.toLowerCase(Locale.ROOT);
     }
 }
